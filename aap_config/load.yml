@@ -1,0 +1,44 @@
+---
+# ============================================================================
+# aap.eda.dynatrace.push — AAP Configuration as Code entry point
+# ============================================================================
+# Canonical install path for every DT-EDA-PUSH AAP object. Reads the data
+# structures under files/ and applies them via the upstream
+# infra.aap_configuration.dispatch role, then verifies the result. Idempotent —
+# every object is keyed by name.
+#
+# AUTH — username/password basic auth (no token). The certified ansible.eda
+#   2.5.0 modules reject controller_token, so we authenticate every call with
+#   AAP_CONTROLLER_USERNAME/PASSWORD.
+#
+# Prerequisites:
+#   - AAP reachable; AAP_CONTROLLER_USERNAME / AAP_CONTROLLER_PASSWORD exported
+#   - EDA_EVENT_STREAM_TOKEN exported (the shared secret with Dynatrace)
+#   - collections installed:  ansible-galaxy collection install -r ../collections/requirements.yml
+#
+# Run:
+#   source docs/dev-environment.sh && \
+#   ansible-playbook -i aap_config/inventory/ aap_config/load.yml
+# ============================================================================
+
+- name: Apply + validate aap.eda.dynatrace.push AAP configuration
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    cac_token_scope: write
+  vars_files:
+    - files/controller_projects.yml
+    - files/controller_inventories.yml
+    - files/controller_job_templates.yml
+    - files/eda_credentials.yml
+    - files/eda_event_streams.yml
+    - files/eda_projects.yml
+    - files/eda_rulebook_activations.yml
+  tasks:
+    - name: Apply all DT-EDA-PUSH AAP objects
+      ansible.builtin.include_role:
+        name: infra.aap_configuration.dispatch
+
+    - name: Verify DT-EDA-PUSH AAP objects exist
+      ansible.builtin.import_tasks: validate_tasks.yml

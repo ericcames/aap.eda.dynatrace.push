@@ -1,0 +1,10 @@
+---
+# Job templates for the push model. Phase 1 starts with notify-only; the
+# restart template is added in Phase 4 once the push path is validated.
+controller_templates:
+  - name: "{{ notify_template }}"
+    organization: "{{ my_organization }}"
+    project: "{{ project_name }}"
+    playbook: playbooks/notify_push_event.yml
+    inventory: "{{ inventory_name }}"
+    ask_variables_on_launch: true

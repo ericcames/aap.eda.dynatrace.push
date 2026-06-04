@@ -1,0 +1,50 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  sanity:
+    name: Repository sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          for f in README.md LICENSE CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md ROADMAP.md CLAUDE.md; do
+            test -f "$f" || { echo "Missing $f"; exit 1; }
+          done
+          echo "ok: required files present"
+
+      - name: Dev-environment secrets file must not be committed
+        run: |
+          if git ls-files --error-unmatch docs/dev-environment.sh >/dev/null 2>&1; then
+            echo "docs/dev-environment.sh is tracked — it must stay gitignored (holds tokens + real tenant)."
+            exit 1
+          fi
+          echo "ok: docs/dev-environment.sh is not tracked"
+
+      - name: No real Dynatrace tenant host in committed files
+        run: |
+          if grep -rInE '[a-z0-9]{8}\.live\.dynatrace\.com' . --exclude-dir=.git; then
+            echo "A real-looking Dynatrace tenant host was found — use the <env-id> placeholder instead."
+            exit 1
+          fi
+          echo "ok: no tenant host leak"
+
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: yamllint .

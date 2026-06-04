@@ -1,0 +1,97 @@
+---
+# ============================================================================
+# Shared post-load validation TASKS — confirms every DT-EDA-PUSH object the
+# dispatch run was supposed to create actually exists in AAP. Fails loudly if
+# any are missing, so load.yml can never exit green on a partial apply.
+# ============================================================================
+
+- name: Set validation API bases + expected object lists
+  ansible.builtin.set_fact:
+    api_base: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_API_BASE') | default('/api/controller/v2', true) }}"
+    eda_api_base: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_EDA_API_BASE') | default('/api/eda/v1', true) }}"
+    expected:
+      - endpoint: projects
+        names: ["{{ project_name }}"]
+      - endpoint: inventories
+        names: ["{{ inventory_name }}"]
+      - endpoint: job_templates
+        names:
+          - "{{ notify_template }}"
+    eda_expected:
+      - endpoint: projects
+        names: ["{{ eda_project_name }}"]
+      - endpoint: eda-credentials
+        names:
+          - "{{ eda_event_stream_credential }}"
+          - "{{ eda_controller_credential }}"
+      - endpoint: activations
+        names: ["{{ eda_rulebook_activation_name }}"]
+
+- name: Flatten the expected controller objects into (endpoint, name) pairs
+  ansible.builtin.set_fact:
+    checks: >-
+      {{ checks | default([]) +
+         [{'endpoint': item.0.endpoint, 'name': item.1}] }}
+  loop: "{{ expected | subelements('names') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+
+- name: Query AAP for each expected controller object by name
+  ansible.builtin.uri:
+    url: "{{ aap_hostname }}{{ api_base }}/{{ item.endpoint }}/?name={{ item.name | urlencode }}"
+    method: GET
+    url_username: "{{ aap_username }}"
+    url_password: "{{ aap_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ aap_validate_certs }}"
+    return_content: false
+  register: object_checks
+  loop: "{{ checks }}"
+  loop_control:
+    label: "{{ item.endpoint }} → {{ item.name }}"
+
+- name: Assert every expected controller object was found
+  ansible.builtin.assert:
+    that:
+      - result.json.count | int > 0
+    fail_msg: "MISSING in AAP: {{ result.item.endpoint }} → '{{ result.item.name }}'"
+    success_msg: "OK: {{ result.item.endpoint }} → '{{ result.item.name }}'"
+  loop: "{{ object_checks.results }}"
+  loop_control:
+    loop_var: result
+    label: "{{ result.item.endpoint }} → {{ result.item.name }}"
+
+# --- EDA objects -----------------------------------------------------------
+- name: Flatten the expected EDA objects into (endpoint, name) pairs
+  ansible.builtin.set_fact:
+    eda_checks: >-
+      {{ eda_checks | default([]) +
+         [{'endpoint': item.0.endpoint, 'name': item.1}] }}
+  loop: "{{ eda_expected | subelements('names') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+
+- name: Query EDA for each expected object by name
+  ansible.builtin.uri:
+    url: "{{ aap_hostname }}{{ eda_api_base }}/{{ item.endpoint }}/?name={{ item.name | urlencode }}&page_size=200"
+    method: GET
+    url_username: "{{ aap_username }}"
+    url_password: "{{ aap_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ aap_validate_certs }}"
+    return_content: false
+  register: eda_object_checks
+  loop: "{{ eda_checks }}"
+  loop_control:
+    label: "{{ item.endpoint }} → {{ item.name }}"
+
+- name: Assert every expected EDA object was found
+  ansible.builtin.assert:
+    that:
+      - (result.json.results | default([]) | selectattr('name', 'equalto', result.item.name) | list | length) > 0
+    fail_msg: "MISSING in AAP (EDA): {{ result.item.endpoint }} → '{{ result.item.name }}'"
+    success_msg: "OK (EDA): {{ result.item.endpoint }} → '{{ result.item.name }}'"
+  loop: "{{ eda_object_checks.results }}"
+  loop_control:
+    loop_var: result
+    label: "{{ result.item.endpoint }} → {{ result.item.name }}"

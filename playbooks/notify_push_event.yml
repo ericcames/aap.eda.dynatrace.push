@@ -1,0 +1,29 @@
+---
+# ============================================================================
+# playbooks/notify_push_event.yml — NOTIFY-ONLY first action (Phase 1)
+# ============================================================================
+# Run by the "DT-EDA-PUSH - Notify" job template when the rulebook receives a
+# push event from Dynatrace. It does nothing destructive — it surfaces the
+# event payload in the AAP job log so we can observe the real data safely before
+# wiring any remediation. Self-contained: localhost, no credentials, no external
+# calls.
+#
+# The rulebook passes dt_push_event (the full event.payload dict) as an
+# extra_var.
+# ============================================================================
+- name: Notify on a Dynatrace push event
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    dt_push_event: {}
+  tasks:
+    - name: Announce the received push event
+      ansible.builtin.debug:
+        msg: >-
+          DT-EDA-PUSH notify — received event from Dynatrace Workflow.
+          Notify-only (no remediation). Full event payload below.
+
+    - name: Dump the full Dynatrace push event for inspection
+      ansible.builtin.debug:
+        var: dt_push_event

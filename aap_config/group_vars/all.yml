@@ -1,0 +1,66 @@
+---
+# ============================================================================
+# DT-EDA-PUSH CaC variables — connection, secrets (by reference), object names
+# ============================================================================
+# NO secrets in version control. Every sensitive value is resolved at runtime
+# from an environment variable exported by docs/dev-environment.sh (gitignored).
+# Committed files use placeholders only. Object names are namespaced
+# `DT-EDA-PUSH -` per ROADMAP so they co-exist safely with the pull model's
+# `DT-EDA -` objects in a shared AAP.
+# ============================================================================
+
+# --- AAP API connection (consumed by infra.aap_configuration.dispatch) -------
+# Auth is username/password (basic). aap_token is intentionally left EMPTY: the
+# certified ansible.eda 2.5.0 modules reject controller_token, so a token breaks
+# the EDA roles. Keeping aap_token '' makes every role use aap_username/password.
+aap_hostname: "{{ lookup('ansible.builtin.env', 'AAP_HOSTNAME') }}"
+aap_token: ""
+aap_validate_certs: "{{ lookup('ansible.builtin.env', 'AAP_VALIDATE_CERTS') | default('false', true) | bool }}"
+aap_username: "{{ lookup('ansible.builtin.env', 'AAP_CONTROLLER_USERNAME') | default('admin', true) }}"
+aap_password: "{{ lookup('ansible.builtin.env', 'AAP_CONTROLLER_PASSWORD') }}"
+
+# --- Organization -----------------------------------------------------------
+# DT-EDA-PUSH objects live here, namespaced `DT-EDA-PUSH -`. Override with
+# DT_EDA_PUSH_ORG.
+my_organization: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_ORG') | default('IT Service Automation', true) }}"
+
+# --- Event Stream ------------------------------------------------------------
+# The shared secret between the Dynatrace EDA connection and the AAP Event
+# Stream. The Dynatrace Workflow sends this as a Bearer token; the Event Stream
+# credential validates it.
+eda_event_stream_token: "{{ lookup('ansible.builtin.env', 'EDA_EVENT_STREAM_TOKEN') }}"
+
+# --- Dynatrace ---------------------------------------------------------------
+# API host (for optional write-back, not for polling — this is push, not pull).
+dt_api_host: "{{ lookup('ansible.builtin.env', 'DT_API_HOST') }}"
+
+# --- Rulebook source (git) ---------------------------------------------------
+# The demo syncs the rulebook from the public GitHub repo (no SCM credential).
+# Customers swap this for their internal repo + an SCM credential.
+dt_eda_push_scm_url: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_SCM_URL') | default('https://github.com/ericcames/aap.eda.dynatrace.push.git', true) }}"
+dt_eda_push_scm_branch: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_SCM_BRANCH') | default('main', true) }}"
+
+# --- Rulebook condition (injected as extra_vars) ------------------------------
+# Regex pattern the rulebook uses to match incoming push events. Tune after
+# capturing the real event payload shape in Phase 3.
+dt_match_pattern: "{{ lookup('ansible.builtin.env', 'DT_MATCH_PATTERN') | default('.*', true) }}"
+
+# --- AAP object names (namespaced `DT-EDA-PUSH -` per ROADMAP) ---------------
+# Controller-side
+project_name: "DT-EDA-PUSH"
+inventory_name: "DT-EDA-PUSH"
+notify_template: "DT-EDA-PUSH - Notify"
+restart_template: "DT-EDA-PUSH - Restart Service"
+
+# EDA-side
+eda_project_name: "DT-EDA-PUSH"
+eda_event_stream_name: "DT-EDA-PUSH - Dynatrace Events"
+eda_event_stream_credential: "DT-EDA-PUSH - Event Stream Token"
+eda_controller_credential: "DT-EDA-PUSH - Controller"
+eda_decision_environment: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_DE') | default('Default Decision Environment', true) }}"
+eda_rulebook_activation_name: "DT-EDA-PUSH - Service Remediation"
+
+# Red Hat AAP credential inputs — lets the rulebook launch Controller JTs.
+controller_cred_host: "{{ aap_hostname }}"
+controller_cred_username: "{{ aap_username }}"
+controller_cred_password: "{{ aap_password }}"

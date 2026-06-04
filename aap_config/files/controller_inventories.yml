@@ -1,0 +1,7 @@
+---
+# Inventory for the push model. The Notify JT runs on localhost (no external
+# hosts needed). The Restart Service JT (Phase 4) will use dc1.azure RHEL hosts
+# added as inventory hosts or via a dynamic source.
+controller_inventories:
+  - name: "{{ inventory_name }}"
+    organization: "{{ my_organization }}"

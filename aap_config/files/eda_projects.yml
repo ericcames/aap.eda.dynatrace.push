@@ -1,0 +1,9 @@
+---
+# EDA project — syncs rulebooks from this repo (public GitHub, no SCM cred).
+# Customers override DT_EDA_PUSH_SCM_URL for their internal repo.
+eda_projects:
+  - name: "{{ eda_project_name }}"
+    organization: "{{ my_organization }}"
+    url: "{{ dt_eda_push_scm_url }}"
+    scm_branch: "{{ dt_eda_push_scm_branch }}"
+    sync: true

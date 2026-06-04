@@ -1,0 +1,37 @@
+# ============================================================================
+# aap.eda.dynatrace.push — ansible.cfg TEMPLATE (example only — DO NOT rename to ansible.cfg)
+# ============================================================================
+# Ansible loads exactly ONE ansible.cfg (it does not merge them). A *live*
+# project-local `ansible.cfg` would shadow your home cfg and break
+# `ansible-galaxy collection install` for Red Hat certified content.
+# So this template is committed as `ansible.cfg.example` (never auto-loaded).
+#
+# To use it, copy it to your standard home path and fill in the token:
+#
+#     cp ansible.cfg.example ~/.ansible.cfg
+#     # then replace REPLACE_ME_AUTOMATION_HUB_OFFLINE_TOKEN below with your
+#     # offline token from https://console.redhat.com/ansible/automation-hub/token
+#
+# NOTE: the same offline token authenticates BOTH the certified AND validated
+# Galaxy servers — paste it in both [galaxy_server.rh_certified] and
+# [galaxy_server.rh_validated].
+# ============================================================================
+
+[defaults]
+host_key_checking = False
+
+[galaxy]
+server_list = rh_certified, rh_validated, community
+
+[galaxy_server.rh_certified]
+url = https://console.redhat.com/api/automation-hub/content/published/
+auth_url = https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+token = REPLACE_ME_AUTOMATION_HUB_OFFLINE_TOKEN
+
+[galaxy_server.rh_validated]
+url = https://console.redhat.com/api/automation-hub/content/validated/
+auth_url = https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+token = REPLACE_ME_AUTOMATION_HUB_OFFLINE_TOKEN
+
+[galaxy_server.community]
+url = https://galaxy.ansible.com/

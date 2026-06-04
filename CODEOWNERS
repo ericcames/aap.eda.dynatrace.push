@@ -1,0 +1,17 @@
+# Code owners for aap.eda.dynatrace.push.
+# GitHub requests review from these owners when matching paths change.
+
+# Catch-all
+*                       @ericcames
+
+# Event-Driven Ansible content
+/rulebooks/             @ericcames
+/collections/           @ericcames
+
+# Dynatrace CaC
+/dynatrace/             @ericcames
+
+# Governance + docs
+/docs/                  @ericcames
+/ROADMAP.md             @ericcames
+/CLAUDE.md              @ericcames

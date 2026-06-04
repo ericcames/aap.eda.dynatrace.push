@@ -1,0 +1,25 @@
+---
+# Collections for the CaC CONTROL NODE (running aap_config/load.yml locally).
+# Install with: ansible-galaxy collection install -r collections/requirements.yml
+# Uses ~/.ansible.cfg (server_list = rh_certified, rh_validated, community) so Red
+# Hat certified/validated content is pulled first — see ansible.cfg.example.
+#
+# NOTE: the push model uses the Default Decision Environment (no custom DE build).
+# The ansible.eda.webhook source plugin ships with ansible.eda, which is already
+# in the default DE. No decision-environment.yml or DE image build needed.
+collections:
+  # --- AAP Configuration as Code + supporting collections (mirrors dc1.azure) --
+  - name: infra.aap_configuration
+    version: 4.4.0
+  - name: ansible.platform
+    version: 2.6.20251106
+  - name: ansible.controller
+    version: 4.7.8
+  - name: ansible.eda
+    version: 2.5.0
+  - name: ansible.hub
+    version: 1.0.4
+  - name: ansible.utils
+    version: 6.0.1
+  - name: ansible.posix
+    version: 2.1.0

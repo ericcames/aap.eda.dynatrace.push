@@ -1,0 +1,36 @@
+---
+# Dynatrace Workflow — triggers on a service failure problem and pushes the
+# event to AAP Event-Driven Ansible.
+#
+# Apply with: dtctl apply -f dynatrace/workflow-service-failure.yaml
+#
+# The trigger filter should be tuned in Phase 3 after capturing live events.
+# The current filter matches problems with a title containing "service" — adjust
+# the expression to match the customer's specific problem types.
+#
+# NOTE: this is a DRAFT. The exact dtctl Workflow schema may differ from this
+# template. Verify against `dtctl describe workflow` output and the Dynatrace
+# Workflows API documentation. If dtctl does not support declarative Workflow
+# creation in your version, create the Workflow manually via the Dynatrace UI:
+#   Workflows > Create workflow
+title: "DT-EDA-PUSH - Service Failure → AAP"
+description: >-
+  Detects service failure problems and pushes the event to AAP Event-Driven
+  Ansible for remediation.
+trigger:
+  type: davis-problem
+  config:
+    # Tune this filter after capturing live events in Phase 3.
+    # Example filters:
+    #   event.category == "AVAILABILITY"
+    #   event.title matches "service"
+    #   event.entity_tags contains "dt-eda-push:enabled"
+    categories:
+      - AVAILABILITY
+tasks:
+  send_to_eda:
+    action: "dynatrace.redhat.ansible:send-event-to-eda"
+    input:
+      # The connection name must match the EDA connection created above.
+      connectionName: "DT-EDA-PUSH - AAP Event Stream"
+      eventData: "{{ result('davis-problem') }}"

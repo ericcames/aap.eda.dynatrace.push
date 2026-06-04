@@ -1,0 +1,28 @@
+---
+# Dynatrace EDA connection — points the "Send event to Event-Driven Ansible"
+# Workflow action at the AAP Event Stream endpoint.
+#
+# Apply with: dtctl apply -f dynatrace/eda-connection.yaml
+#
+# Before applying:
+#   1. Install the Red Hat Ansible Connector from Dynatrace Hub
+#   2. Get the Event Stream endpoint URL from AAP:
+#      Automation Decisions > Event Streams > DT-EDA-PUSH - Dynatrace Events
+#   3. Replace REPLACE_ME_EVENT_STREAM_URL below with that URL
+#   4. Replace REPLACE_ME_EVENT_STREAM_TOKEN with the same token as
+#      EDA_EVENT_STREAM_TOKEN in docs/dev-environment.sh
+#
+# The dtctl settings schema for this connection is:
+#   app:dynatrace.redhat.ansible.eda.webhook.connection
+#
+# NOTE: if dtctl does not support this schema in your version, configure the
+# connection manually via the Dynatrace UI:
+#   Settings > Connections > Red Hat Ansible > Event-Driven Ansible tab
+config:
+  - schema: "app:dynatrace.redhat.ansible.eda.webhook.connection"
+    scope: environment
+    value:
+      name: "DT-EDA-PUSH - AAP Event Stream"
+      url: "REPLACE_ME_EVENT_STREAM_URL"
+      token: "REPLACE_ME_EVENT_STREAM_TOKEN"
+      eventStream: true

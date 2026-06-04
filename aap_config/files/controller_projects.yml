@@ -1,0 +1,8 @@
+---
+# Controller project — syncs playbooks from this repo (public GitHub, no cred).
+controller_projects:
+  - name: "{{ project_name }}"
+    organization: "{{ my_organization }}"
+    scm_url: "{{ dt_eda_push_scm_url }}"
+    scm_branch: "{{ dt_eda_push_scm_branch }}"
+    scm_update_on_launch: false

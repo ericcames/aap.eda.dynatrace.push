@@ -1,0 +1,22 @@
+---
+# Binds the push rulebook to the Event Stream, the Default DE, and the
+# Controller credential so it can receive Dynatrace events and launch JTs.
+# The match pattern is injected as an extra var so the rulebook condition lives
+# in CaC (group_vars/all.yml), not hard-coded in the rulebook.
+eda_rulebook_activations:
+  - name: "{{ eda_rulebook_activation_name }}"
+    project: "{{ eda_project_name }}"
+    organization: "{{ my_organization }}"
+    rulebook: dynatrace_push_events.yml
+    decision_environment: "{{ eda_decision_environment }}"
+    extra_vars:
+      dt_match_pattern: "{{ dt_match_pattern }}"
+      my_organization: "{{ my_organization }}"
+      notify_template: "{{ notify_template }}"
+    event_streams:
+      - event_stream: "{{ eda_event_stream_name }}"
+        source_name: __SOURCE_1
+    eda_credentials:
+      - "{{ eda_controller_credential }}"
+    enabled: true
+    state: present

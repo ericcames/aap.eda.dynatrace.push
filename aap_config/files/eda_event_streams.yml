@@ -1,0 +1,10 @@
+---
+# Event Stream that receives push events from Dynatrace Workflows.
+# The Dynatrace "Send event to Event-Driven Ansible" Workflow action POSTs to
+# the Event Stream's external endpoint with a Bearer token validated by the
+# Token Event Stream credential. forward_events: true enables the ingress URL.
+eda_event_streams:
+  - name: "{{ eda_event_stream_name }}"
+    credential_name: "{{ eda_event_stream_credential }}"
+    organization: "{{ my_organization }}"
+    forward_events: true

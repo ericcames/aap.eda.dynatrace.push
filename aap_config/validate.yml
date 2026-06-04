@@ -1,0 +1,22 @@
+---
+# Standalone validation — run after load.yml (or independently) to confirm
+# every DT-EDA-PUSH object exists in AAP.
+#
+# Run:
+#   source docs/dev-environment.sh && \
+#   ansible-playbook -i aap_config/inventory/ aap_config/validate.yml
+- name: Validate DT-EDA-PUSH AAP objects
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars_files:
+    - files/controller_projects.yml
+    - files/controller_inventories.yml
+    - files/controller_job_templates.yml
+    - files/eda_credentials.yml
+    - files/eda_event_streams.yml
+    - files/eda_projects.yml
+    - files/eda_rulebook_activations.yml
+  tasks:
+    - name: Verify DT-EDA-PUSH AAP objects exist
+      ansible.builtin.import_tasks: validate_tasks.yml

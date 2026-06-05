@@ -2,7 +2,11 @@
 # Controller project — syncs playbooks from this repo (public GitHub, no cred).
 controller_projects:
   - name: "{{ project_name }}"
+    description: "Dynatrace → AAP EDA push integration (rulebook + remediation playbooks)"
     organization: "{{ my_organization }}"
+    scm_type: git
     scm_url: "{{ dt_eda_push_scm_url }}"
     scm_branch: "{{ dt_eda_push_scm_branch }}"
     scm_update_on_launch: false
+    scm_clean: true
+    wait: true

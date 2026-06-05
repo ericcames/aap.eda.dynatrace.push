@@ -1,9 +1,11 @@
 ---
 # EDA project — syncs rulebooks from this repo (public GitHub, no SCM cred).
 # Customers override DT_EDA_PUSH_SCM_URL for their internal repo.
+# NOTE: the certified ansible.eda 2.5.0 `project` module has no scm_branch — EDA
+# syncs the repo's DEFAULT branch (main), which is where the rulebook lives.
 eda_projects:
   - name: "{{ eda_project_name }}"
-    organization: "{{ my_organization }}"
+    description: "Dynatrace push rulebooks (Event Stream → notify/remediate)"
     url: "{{ dt_eda_push_scm_url }}"
-    scm_branch: "{{ dt_eda_push_scm_branch }}"
+    organization: "{{ my_organization }}"
     sync: true

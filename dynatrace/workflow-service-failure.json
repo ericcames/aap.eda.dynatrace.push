@@ -1,0 +1,45 @@
+{
+  "title": "DT-EDA-PUSH - Service Failure → AAP",
+  "description": "Detects problems and pushes the event to AAP Event-Driven Ansible for remediation.",
+  "isPrivate": false,
+  "type": "SIMPLE",
+  "hourlyExecutionLimit": 1000,
+  "trigger": {
+    "eventTrigger": {
+      "isActive": true,
+      "triggerConfiguration": {
+        "type": "davis-problem",
+        "value": {
+          "analysisReady": true,
+          "categories": {
+            "availability": true,
+            "error": true,
+            "info": false,
+            "resource": true
+          },
+          "entityTags": {},
+          "entityTagsMatch": "all",
+          "onProblemClose": false,
+          "severityThreshold": 3
+        }
+      },
+      "uniqueExpression": "{{ event()[\"event.id\"] }}-{{ \"open\" if event()[\"event.status\"] == \"ACTIVE\" else \"resolved\" }}-{{ event()[\"dt.davis.last_reopen_timestamp\"] }}"
+    }
+  },
+  "tasks": {
+    "send_to_aap": {
+      "action": "dynatrace.redhat.ansible:send-event-to-eda",
+      "description": "Push the problem event to AAP EDA via the DT-EDA-PUSH Event Stream",
+      "input": {
+        "connectionId": "REPLACE_ME_CONNECTION_OBJECT_ID",
+        "eventData": "{{ event() }}"
+      },
+      "name": "send_to_aap",
+      "position": {
+        "x": 0,
+        "y": 1
+      },
+      "predecessors": []
+    }
+  }
+}

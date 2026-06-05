@@ -86,36 +86,37 @@ Full diagrams: [`docs/architecture.md`](docs/architecture.md).
 
 **Exit criteria:** repo structure passes CI; ready for CaC content.
 
-### Phase 1 — AAP plumbing (notify-only)  🔄
-- 🔄 Event Stream credential (`DT-EDA-PUSH - Event Stream Token`)
-- 🔄 Event Stream (`DT-EDA-PUSH - Dynatrace Events`)
-- 🔄 Controller project, inventory, credentials
-- 🔄 Notify-only job template (`DT-EDA-PUSH - Notify`)
-- 🔄 Rulebook (`ansible.eda.webhook` source, push events)
-- 🔄 Rulebook activation wired to Event Stream
-- 🔄 `aap_config/load.yml` dispatch + validation
+### Phase 1 — AAP plumbing (notify-only)  ✅
+- ✅ Event Stream credential (`DT-EDA-PUSH - Event Stream Token`)
+- ✅ Event Stream (`DT-EDA-PUSH - Dynatrace Events`)
+- ✅ Controller project, inventory, credentials
+- ✅ Notify-only job template (`DT-EDA-PUSH - Notify`)
+- ✅ Rulebook (`ansible.eda.webhook` source, push events)
+- ✅ Rulebook activation wired to Event Stream
+- ✅ `aap_config/load.yml` dispatch + validation
 
 **Exit criteria:** `load.yml` applies cleanly; activation starts; Event Stream
 endpoint is reachable and returns 401 without a valid token.
 
-### Phase 2 — Dynatrace plumbing (dtctl)  🔄
-- 🔄 Install Red Hat Ansible Connector from Dynatrace Hub (manual, one-time)
-- 🔄 EDA connection config (`dynatrace/eda-connection.yaml`)
-- 🔄 Workflow: problem trigger → "Send event to EDA" (`dynatrace/workflow-service-failure.yaml`)
-- 🔄 Verify dtctl can manage the connection via settings schema
-  `app:dynatrace.redhat.ansible.eda.webhook.connection`
+### Phase 2 — Dynatrace plumbing (dtctl)  ✅
+- ✅ Install Red Hat Ansible Connector from Dynatrace Hub (manual, one-time)
+- ✅ EDA connection created (Settings > Connections > Red Hat Ansible > Event-Driven Ansible)
+- ✅ Workflow created: Davis problem trigger → "Send event to EDA" (`dtctl create workflow`)
+- ✅ Verified dtctl manages the connection via settings schema
+  `app:dynatrace.redhat.ansible:eda-webhook.connection` (note the colon, not dot)
 
-**Exit criteria:** `dtctl apply -f dynatrace/` creates the Workflow + connection;
-Workflow shows as active in Dynatrace.
+**Exit criteria:** Workflow + connection exist; Workflow shows as active in
+Dynatrace.
 
-### Phase 3 — End-to-end test (notify-only)  ⬜
-- ⬜ Wire Dynatrace → AAP and fire the push path
-- ⬜ Capture raw event payload from the Notify JT job log
-- ⬜ Document the verified event shape
+### Phase 3 — End-to-end test (notify-only)  🔄
+- ✅ Direct POST to Event Stream → rulebook match → Notify JT fires (job #205, 2026-06-05)
+- ✅ Event payload lands intact in the job log (all fields visible, no data loss)
+- 🔄 Capture the **live Davis problem** event payload (requires a real problem or OneAgent)
+- ⬜ Document the verified event shape from a Workflow-triggered event
 - ⬜ Tune the rulebook condition against the real payload
 
-**Exit criteria:** push path fires end-to-end; event shape documented; condition
-tuned against live data.
+**Exit criteria:** push path fires end-to-end via Dynatrace Workflow; event shape
+documented; condition tuned against live data.
 
 ### Phase 4 — Remediation (restart service)  ⬜
 - ⬜ `playbooks/restart_service.yml` — receives service name + host, runs
@@ -185,6 +186,11 @@ objects with a `DT-EDA-PUSH -` prefix.
 | 2026-06-04 | **dc1.azure RHEL hosts** as remediation targets                  | First use case: monitor failed services on dc1.azure hosts, restart if appropriate |
 | 2026-06-04 | **Custom metric/event** for service failure detection            | Customer will define specific service monitoring, not relying on Davis AI auto-detection alone |
 | 2026-06-04 | Dynatrace account team shared **dtctl** (`github.com/dynatrace-oss/dtctl`) | kubectl-style CLI for Dynatrace; manages Workflows, connections, EdgeConnect declaratively |
+| 2026-06-05 | dtctl uses **browser-based OAuth login**, not client-credential env vars | `dtctl config set-context` + `dtctl auth login` opens a browser; tokens stored in OS keyring. The OAuth client ID/secret in `dev-environment.sh` are for creating the client, not for dtctl auth directly |
+| 2026-06-05 | EDA connection created via **Dynatrace UI**, not dtctl apply | The connection depends on the Event Stream UUID (only known after `load.yml`), so manual creation is simpler. Workflow created via `dtctl create workflow --file` |
+| 2026-06-05 | Settings schema is `app:dynatrace.redhat.ansible:eda-webhook.connection` | Colon-separated, not dots — discovered by `dtctl get schemas \| grep ansible` |
+| 2026-06-05 | **Default Decision Environment** works for Event Streams | No custom DE build needed — `ansible.eda.webhook` ships in the default DE, confirmed by activation starting successfully |
+| 2026-06-05 | Controller project needs `scm_type: git` + `wait: true` | Without these the project creates as manual (no SCM URL), and the JT fails with "Playbook not found". EDA project must omit `scm_branch` (ansible.eda 2.5.0 doesn't support it) |
 
 ---
 

@@ -2,27 +2,28 @@
 # Dynatrace EDA connection — points the "Send event to Event-Driven Ansible"
 # Workflow action at the AAP Event Stream endpoint.
 #
-# Apply with: dtctl apply -f dynatrace/eda-connection.yaml
-#
-# Before applying:
-#   1. Install the Red Hat Ansible Connector from Dynatrace Hub
-#   2. Get the Event Stream endpoint URL from AAP:
-#      Automation Decisions > Event Streams > DT-EDA-PUSH - Dynatrace Events
-#   3. Replace REPLACE_ME_EVENT_STREAM_URL below with that URL
-#   4. Replace REPLACE_ME_EVENT_STREAM_TOKEN with the same token as
-#      EDA_EVENT_STREAM_TOKEN in docs/dev-environment.sh
-#
 # The dtctl settings schema for this connection is:
-#   app:dynatrace.redhat.ansible.eda.webhook.connection
+#   app:dynatrace.redhat.ansible:eda-webhook.connection
 #
-# NOTE: if dtctl does not support this schema in your version, configure the
-# connection manually via the Dynatrace UI:
-#   Settings > Connections > Red Hat Ansible > Event-Driven Ansible tab
+# This file is a REFERENCE — the connection was created manually in the
+# Dynatrace UI (Settings > Connections > Red Hat Ansible > Event-Driven Ansible)
+# because the settings schema requires the Event Stream UUID, which is only
+# known after aap_config/load.yml creates the Event Stream in AAP.
+#
+# To recreate via dtctl:
+#   dtctl create settings --schema app:dynatrace.redhat.ansible:eda-webhook.connection \
+#     --file dynatrace/eda-connection.yaml
+#
+# To get the Event Stream endpoint URL from AAP:
+#   curl -sk -u admin:$PASS "$AAP_HOSTNAME/api/eda/v1/event-streams/" | \
+#     python3 -c "import sys,json; [print(f'{r[\"name\"]}: {r[\"uuid\"]}') for r in json.load(sys.stdin)['results']]"
+#   Then construct: https://<aap>/eda-event-streams/api/eda/v1/external_event_stream/<uuid>/post/
 config:
-  - schema: "app:dynatrace.redhat.ansible.eda.webhook.connection"
+  - schema: "app:dynatrace.redhat.ansible:eda-webhook.connection"
     scope: environment
     value:
       name: "DT-EDA-PUSH - AAP Event Stream"
-      url: "REPLACE_ME_EVENT_STREAM_URL"
+      url: "REPLACE_ME_EVENT_STREAM_ENDPOINT_URL"
       token: "REPLACE_ME_EVENT_STREAM_TOKEN"
-      eventStream: true
+      type: "api-token"
+      eventStreamEnabled: true

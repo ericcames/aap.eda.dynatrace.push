@@ -33,14 +33,23 @@ export EDA_EVENT_STREAM_TOKEN="REPLACE_ME_EVENT_STREAM_TOKEN"
 # is needed if you want to comment on / close problems from AAP.
 export DT_API_HOST="https://<env-id>.live.dynatrace.com"
 
-# --- dtctl auth (OAuth) ---
-# Create an OAuth client in Dynatrace (Settings > OAuth clients) with scopes:
-#   automation:workflows:read, automation:workflows:write,
-#   settings:objects:read, settings:objects:write
+# --- dtctl auth ---
+# dtctl uses BROWSER-BASED OAuth login (not client credentials in env vars).
+# Setup:
+#   1. Create an OAuth client in Dynatrace Account Management:
+#      https://myaccount.dynatrace.com/platformTokens
+#      Required scopes: automation:workflows:read/write, settings:objects:read/write
+#   2. Configure dtctl:
+#      dtctl config set-context aap-push --environment https://<env-id>.apps.dynatrace.com
+#      dtctl auth login    # opens browser
+#   3. Verify: dtctl doctor
+#
+# The env vars below are for REFERENCE only — dtctl reads from its own config
+# (~/.config/dtctl/config) and OS keyring, not from these exports.
+export DT_ENV_URL="https://<env-id>.apps.dynatrace.com"
+# OAuth client ID/secret (saved here for rotation reference, not consumed by dtctl)
 export DT_OAUTH_CLIENT_ID="REPLACE_ME"
 export DT_OAUTH_CLIENT_SECRET="REPLACE_ME"
-export DT_OAUTH_SSO_ENDPOINT="https://sso.dynatrace.com/sso/oauth2/token"
-export DT_ENV_URL="https://<env-id>.apps.dynatrace.com"
 
 # --- Rulebook condition ---
 # Regex pattern for matching incoming push events. Tune after capturing the

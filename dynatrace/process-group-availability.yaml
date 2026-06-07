@@ -1,0 +1,26 @@
+---
+# Process group availability monitoring — httpd on dc1.azure Linux host.
+#
+# Without this rule, Dynatrace sees httpd stop/start as informational events
+# but does NOT generate a Davis problem. The Workflow trigger fires only on
+# Davis problems, so the event never reaches AAP EDA.
+#
+# This setting tells Davis: "open a problem the moment any httpd process
+# instance becomes unavailable." That problem matches the Workflow's trigger
+# (category: availability) and the full push path fires.
+#
+# Apply:
+#   dtctl create settings \
+#     --schema builtin:availability.process-group-alerting \
+#     --scope  PROCESS_GROUP-685F2A71A785ADB9 \
+#     --file   dynatrace/process-group-availability.yaml
+#
+# Verify:
+#   dtctl get settings --schema builtin:availability.process-group-alerting
+#
+# Process group:
+#   Name: Apache Web Server httpd
+#   ID:   PROCESS_GROUP-685F2A71A785ADB9
+#   Found via: dtctl query 'fetch dt.entity.process_group | limit 20'
+enabled: true
+alertingMode: ON_PGI_UNAVAILABILITY

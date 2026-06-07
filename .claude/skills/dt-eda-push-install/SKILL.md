@@ -48,6 +48,29 @@ If dtctl is set up:
 dtctl apply -f dynatrace/
 ```
 
+#### Process group availability alerting
+
+Without this rule, Dynatrace sees httpd stop/start as informational events but
+never generates a Davis problem — so the Workflow trigger never fires.
+
+```bash
+dtctl create settings \
+  --schema builtin:availability.process-group-alerting \
+  --scope  PROCESS_GROUP-685F2A71A785ADB9 \
+  --file   dynatrace/process-group-availability.yaml
+```
+
+Verify the rule is in place:
+
+```bash
+dtctl get settings --schema builtin:availability.process-group-alerting
+```
+
+> **Note:** The scope (`PROCESS_GROUP-685F2A71A785ADB9`) is the httpd process
+> group on the current dc1.azure environment. If the process group entity ID
+> differs in a new environment, find it with:
+> `dtctl query 'fetch dt.entity.process_group'`
+
 ### Step 4: Verify
 
 ```bash
@@ -58,3 +81,19 @@ Check the AAP UI:
 - **Automation Decisions > Event Streams** — `DT-EDA-PUSH - Dynatrace Events` exists
 - **Automation Decisions > Rulebook Activations** — `DT-EDA-PUSH - Service Remediation` is running
 - **Automation Controller > Templates** — `DT-EDA-PUSH - Notify` exists
+
+Check Dynatrace:
+- **Process group availability** — `dtctl get settings --schema builtin:availability.process-group-alerting` returns the httpd rule with `enabled: true`
+- **Workflow** — `dtctl get workflows` shows `DT-EDA-PUSH - Service Failure → AAP` as active
+
+## Event shape reference
+
+The live Davis problem event shape is documented in
+`dynatrace/davis-problem-event-shape.yaml` (captured 2026-06-07). Key points:
+
+- Event arrives wrapped: `dt_push_event.eventData.<fields>`
+- Field names use **dots** (`event.name`, `event.status`, `host.name`) — require
+  **bracket notation** in Jinja2: `_dt_event['event.name']`
+- Problem ID is `display_id` (not `problemId`)
+- Hostname is in `host.name[0]` (list, FQDN with `lnx`/`win` for OS detection)
+- `affected_entity_names[0]` is the process group name, not the hostname

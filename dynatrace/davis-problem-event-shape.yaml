@@ -1,0 +1,84 @@
+---
+# Davis problem event shape — captured from a LIVE push event (2026-06-07)
+#
+# This is the actual payload that arrives in the AAP workflow's dt_push_event
+# variable when Dynatrace pushes a Davis problem via the "Send event to EDA"
+# Workflow action. Captured from job #589 (workflow) / #590 (triage).
+#
+# The event is wrapped: dt_push_event.eventData.<fields>
+# The triage playbook (dc1.azure/playbooks/dt_triage.yml) unwraps eventData
+# first, then extracts the fields below.
+#
+# KEY GOTCHA: Many field names contain dots (event.name, event.status,
+# host.name). In Ansible/Jinja2, these require BRACKET notation:
+#   _dt_event['event.name']     — correct
+#   _dt_event.event.name        — WRONG (tries to traverse nested dicts)
+#
+# FIELD MAPPING for triage:
+#   Problem ID:      display_id                    → "P-26068"
+#   Problem title:   event.name                    → "Process unavailable"
+#   Status:          event.status                  → "ACTIVE"
+#   Affected entity: affected_entity_names[0]      → "Apache Web Server httpd"
+#   Hostname:        host.name[0]                  → FQDN (contains "lnx"/"win")
+#   Host entity:     dt.entity.host[0]             → "HOST-E856A4268260CA23"
+#   Process group:   dt.entity.process_group_instance[0] → "PROCESS_GROUP_INSTANCE-..."
+#   Category:        event.category                → "AVAILABILITY"
+#   Severity:        event.severity                → 3
+#   Description:     event.description             → markdown narrative
+#
+# NOTE: For OS detection, use host.name[0] (hostname with lnx/win), NOT
+# affected_entity_names[0] (process group name — no OS hint).
+
+eventData:
+  display_id: "P-26068"
+  event.name: "Process unavailable"
+  event.status: "ACTIVE"
+  event.kind: "DAVIS_PROBLEM"
+  event.category: "AVAILABILITY"
+  event.severity: 3
+  event.id: "-6749157829792913198_1780870990259V2"
+  event.start: "2026-06-07T22:23:10.259000000Z"
+  event.status_transition: "UPDATED"
+  event.description: >-
+    Process Apache Web Server httpd on host
+    dc1az-lnx-medium-2cpu-8gb-jhwyv...has been shut down
+  dt.analysis.ready: true
+  dt.davis.is_duplicate: false
+  dt.davis.is_frequent_event: false
+  dt.davis.mute.status: "NOT_MUTED"
+  dt.davis.impact_level:
+    - "Infrastructure"
+  dt.davis.event_ids:
+    - "-6749157829792913198_1780870990259"
+  affected_entity_ids:
+    - "PROCESS_GROUP_INSTANCE-80098E5725E5679A"
+  affected_entity_names:
+    - "Apache Web Server httpd"
+  affected_entity_types:
+    - "dt.entity.process_group_instance"
+  related_entity_ids:
+    - "HOST-E856A4268260CA23"
+    - "HOST_GROUP-D0C157D9E803B0FE"
+  related_entity_names:
+    - "dc1az-lnx-medium-2cpu-8gb-jhwyv.w4tbgjihufqupa2ej3zz35up0g.bx.internal.cloudapp.net"
+    - "dc1-azure"
+  host.name:
+    - "dc1az-lnx-medium-2cpu-8gb-jhwyv.w4tbgjihufqupa2ej3zz35up0g.bx.internal.cloudapp.net"
+  dt.entity.host:
+    - "HOST-E856A4268260CA23"
+  dt.entity.process_group_instance:
+    - "PROCESS_GROUP_INSTANCE-80098E5725E5679A"
+  dt.entity.host_group:
+    - "HOST_GROUP-D0C157D9E803B0FE"
+  dt.host_group.id:
+    - "dc1-azure"
+  azure.resource.group:
+    - "openenv-blsvm-1"
+  labels.alerting_profile:
+    - "Default"
+  maintenance.is_under_maintenance: false
+  timestamp: "2026-06-07T22:25:16.582000000Z"
+  dt.openpipeline.source: "classic_root_cause_analysis"
+  dt.openpipeline.pipelines:
+    - "davis.problems:default"
+  dt.system.bucket: "default_davis_events"

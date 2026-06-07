@@ -111,8 +111,14 @@ Dynatrace.
 ### Phase 3 — End-to-end test (notify-only)  🔄
 - ✅ Direct POST to Event Stream → rulebook match → Notify JT fires (job #205, 2026-06-05)
 - ✅ Event payload lands intact in the job log (all fields visible, no data loss)
-- 🔄 Capture the **live Davis problem** event payload (requires a real problem or OneAgent)
-- ⬜ Document the verified event shape from a Workflow-triggered event
+- ✅ Process group availability alerting enabled for httpd (`PROCESS_GROUP-685F2A71A785ADB9`)
+  via `builtin:availability.process-group-alerting` — Davis now opens a problem when any
+  httpd instance goes down (2026-06-07)
+- ✅ Captured **live Davis problem** event payload from job #589/#590 (2026-06-07).
+  Documented in `dynatrace/davis-problem-event-shape.yaml`
+- ✅ Documented the verified event shape — key finding: dot-notated keys
+  (`event.name`, `event.status`, `host.name`) require bracket notation in Jinja2
+- 🔄 Fix dc1.azure `dt_triage.yml` to parse the real event shape (tracked in dc1.azure repo)
 - ⬜ Tune the rulebook condition against the real payload
 
 **Exit criteria:** push path fires end-to-end via Dynatrace Workflow; event shape
@@ -191,6 +197,8 @@ objects with a `DT-EDA-PUSH -` prefix.
 | 2026-06-05 | Settings schema is `app:dynatrace.redhat.ansible:eda-webhook.connection` | Colon-separated, not dots — discovered by `dtctl get schemas \| grep ansible` |
 | 2026-06-05 | **Default Decision Environment** works for Event Streams | No custom DE build needed — `ansible.eda.webhook` ships in the default DE, confirmed by activation starting successfully |
 | 2026-06-05 | Controller project needs `scm_type: git` + `wait: true` | Without these the project creates as manual (no SCM URL), and the JT fails with "Playbook not found". EDA project must omit `scm_branch` (ansible.eda 2.5.0 doesn't support it) |
+| 2026-06-07 | **Process group availability alerting** required for httpd | Davis does not auto-generate problems when a process goes down — it only logs informational events. Explicit `builtin:availability.process-group-alerting` rule (mode: `ON_PGI_UNAVAILABILITY`) scoped to the httpd process group is required for the Workflow trigger to fire |
+| 2026-06-07 | Process group entity discovered via **DQL** (`dtctl query`) | `dtctl get` has no `entities` resource; `dtctl query 'fetch dt.entity.process_group'` returns entity names + IDs. httpd = `PROCESS_GROUP-685F2A71A785ADB9` |
 
 ---
 

@@ -8,7 +8,8 @@
 #
 # Variables are injected by the rulebook activation
 # (aap_config/files/eda_rulebook_activations.yml):
-#   dt_match_pattern / notify_template / my_organization ← extra_vars
+#   dt_match_pattern / notify_template / remediate_workflow
+#   / my_organization ← extra_vars
 #
 # EVENT SHAPE: the Dynatrace "Send event to Event-Driven Ansible" Workflow
 # action sends arbitrary JSON in the POST body. The webhook source wraps it as:
@@ -16,7 +17,6 @@
 #   event.meta      — request headers (Authorization stripped)
 #
 # The exact payload fields depend on the Workflow's Event data configuration.
-# Phase 3 captures the live payload and tunes the condition below.
 # ============================================================================
 - name: React to Dynatrace push events
   hosts: all
@@ -25,11 +25,11 @@
         host: 0.0.0.0
         port: 5000
   rules:
-    - name: Notify on a pushed Dynatrace event
+    - name: Launch remediation workflow on a Dynatrace problem event
       condition: event.payload is defined
       action:
-        run_job_template:
-          name: "{{ notify_template }}"
+        run_workflow_template:
+          name: "{{ remediate_workflow }}"
           organization: "{{ my_organization }}"
           job_args:
             extra_vars:

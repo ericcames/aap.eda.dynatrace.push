@@ -13,6 +13,7 @@ eda_rulebook_activations:
       dt_match_pattern: "{{ dt_match_pattern }}"
       my_organization: "{{ my_organization }}"
       notify_template: "{{ notify_template }}"
+      remediate_workflow: "{{ remediate_workflow }}"
     event_streams:
       - event_stream: "{{ eda_event_stream_name }}"
         source_name: __SOURCE_1

@@ -51,6 +51,7 @@ project_name: "DT-EDA-PUSH"
 inventory_name: "DT-EDA-PUSH"
 notify_template: "DT-EDA-PUSH - Notify"
 restart_template: "DT-EDA-PUSH - Restart Service"
+remediate_workflow: "{{ lookup('ansible.builtin.env', 'DT_EDA_PUSH_REMEDIATE_WORKFLOW') | default('DC1.Azure - Remediate Website', true) }}"
 
 # EDA-side
 eda_project_name: "DT-EDA-PUSH"

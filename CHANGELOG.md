@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Documentation
+
+- Added `docs/INSTALL-UI.md` — full manual install guide using only the AAP and
+  Dynatrace web UIs (15 steps across AAP setup, Dynatrace setup, and
+  validation/testing). Covers every object to create, field values, process
+  group availability alerting, troubleshooting, and event shape reference
+  (Phase 5)
+
 ### Added
 
 - Initial repo scaffold mirroring dc1.azure conventions

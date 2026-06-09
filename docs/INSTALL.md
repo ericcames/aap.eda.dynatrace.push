@@ -6,6 +6,7 @@
 |-------------|---------|
 | AAP 2.5+ with EDA | Event Streams requires AAP 2.5 or later |
 | Dynatrace SaaS tenant | With Red Hat Ansible Connector installed from Dynatrace Hub |
+| Dynatrace OneAgent | Deployed on target hosts. Install playbooks: [Linux](https://dev.azure.com/ericcames/dc1.azure/_git/dc1.azure?path=/playbooks/install_dynatrace_oneagent_linux.yml), [Windows](https://dev.azure.com/ericcames/dc1.azure/_git/dc1.azure?path=/playbooks/install_dynatrace_oneagent_windows.yml) (dc1.azure repo) |
 | `dtctl` CLI | Install from [github.com/dynatrace-oss/dtctl](https://github.com/dynatrace-oss/dtctl) |
 | `ansible-galaxy` | With `~/.ansible.cfg` configured for Red Hat Automation Hub (see `ansible.cfg.example`) |
 | Network connectivity | AAP must be reachable from Dynatrace (directly or via EdgeConnect) |
@@ -76,6 +77,32 @@ ansible-playbook -i aap_config/inventory/ aap_config/validate.yml
 To test the full push path, trigger a problem in Dynatrace and watch for the
 Notify JT to fire in AAP Controller.
 
+## Closing stale problems
+
+When hosts are decommissioned or rebuilt, Dynatrace keeps "Process unavailable"
+problems open because the process group instance never comes back. Close them
+with the Environment API v2:
+
+```bash
+source docs/dev-environment.sh
+
+# List open problems
+curl -s "${DT_API_HOST}/api/v2/problems?problemSelector=status(open)" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" | python3 -m json.tool
+
+# Close a stale problem
+curl -s -X POST "${DT_API_HOST}/api/v2/problems/<problemId>/close" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Host decommissioned"}'
+```
+
+`DT_API_TOKEN` is a classic access token (`dt0c01.*`) created in the Dynatrace
+environment UI (**Settings > Access tokens > Generate new token**). Required
+scopes: `problems.read`, `problems.write`, `securityProblems.read`,
+`securityProblems.write`. This is separate from dtctl's OAuth platform token,
+which does not have the `environment-api:problems:*` scopes.
+
 ## Troubleshooting
 
 | Symptom | Check |
@@ -84,3 +111,4 @@ Notify JT to fire in AAP Controller.
 | Activation not starting | Check the Decision Environment is available (default DE should work) |
 | Workflow not firing | Check Workflow trigger filter matches the problem type |
 | No event received in AAP | Check network connectivity (Dynatrace → AAP HTTPS 443) |
+| Stale "Process unavailable" problems | Host was decommissioned — close via Problems API v2 (see above) |

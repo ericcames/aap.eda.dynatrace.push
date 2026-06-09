@@ -8,10 +8,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Documentation
 
 - Added `docs/INSTALL-UI.md` — full manual install guide using only the AAP and
-  Dynatrace web UIs (15 steps across AAP setup, Dynatrace setup, and
+  Dynatrace web UIs (16 steps across AAP setup, Dynatrace setup, and
   validation/testing). Covers every object to create, field values, process
   group availability alerting, troubleshooting, and event shape reference
   (Phase 5)
+
+### Added (2026-06-09)
+
+- Classic access token (`DT_API_TOKEN`) for Dynatrace Problems API v2 — platform
+  tokens (`dt0s16.*`) do not expose `environment-api:problems:*` scopes, so a
+  separate `dt0c01.*` token is required. Token name: `dtctl-problems`, scopes:
+  `problems.read`, `problems.write`, `securityProblems.read`,
+  `securityProblems.write`
+- Stale problem cleanup via `POST /api/v2/problems/{id}/close` — closes
+  "Process unavailable" problems left behind by decommissioned hosts
+- `DT_API_TOKEN` placeholder added to `docs/dev-environment.sh.example`
+- Problem management commands documented in `dynatrace/README.md` and install
+  skill
+- Set `analysisReady: false` on the DT-EDA-PUSH workflow trigger — fires on
+  problem open without waiting for Davis root cause analysis, cutting detection
+  time from ~6 min to ~2-3 min
+- Deleted stale "Hello World" and "Untitled workflow" from Dynatrace (broken
+  connectionId and empty eventData respectively)
+- OneAgent install playbook cross-references added to `docs/INSTALL.md` and
+  `docs/INSTALL-UI.md` prerequisites (links to dc1.azure ADO repo)
 
 ### Added
 

@@ -17,7 +17,7 @@ For the CLI/CaC-driven install, see [`INSTALL.md`](INSTALL.md).
 | Prerequisite | Details |
 |-------------|---------|
 | **AAP 2.5+** with EDA | Event Streams require AAP 2.5 or later. Dev target: dc1.azure RHDP AAP 2.6 |
-| **Dynatrace SaaS tenant** | With OneAgent deployed on the hosts you want to monitor |
+| **Dynatrace SaaS tenant** | With OneAgent deployed on the hosts you want to monitor. Install playbooks: [Linux](https://dev.azure.com/ericcames/dc1.azure/_git/dc1.azure?path=/playbooks/install_dynatrace_oneagent_linux.yml), [Windows](https://dev.azure.com/ericcames/dc1.azure/_git/dc1.azure?path=/playbooks/install_dynatrace_oneagent_windows.yml) (dc1.azure repo) |
 | **Network connectivity** | AAP must be reachable from Dynatrace SaaS over HTTPS/443 (directly or via EdgeConnect) |
 | **Event Stream token** | A strong random shared secret that both sides will use. Generate one before you start: `openssl rand -base64 32` |
 
@@ -137,7 +137,7 @@ This credential lets the rulebook activation launch Controller job templates.
    `https://<aap>/eda-event-streams/api/eda/v1/external_event_stream/<uuid>/post/`
 
 > **Save this URL somewhere handy** — you will paste it into Dynatrace in
-> Step 10.
+> Step 11.
 
 ### Step 7: Create the EDA project
 
@@ -252,7 +252,36 @@ The Workflow fires when Davis opens a problem and pushes the event to AAP.
 5. Click **Save**
 6. **Activate** the Workflow (toggle at the top)
 
-### Step 12: Enable process group availability alerting
+### Step 12: Create a classic access token (for problem management)
+
+dtctl's OAuth platform token cannot list or close Dynatrace problems. A separate
+classic access token is needed for the Problems API v2.
+
+1. Go to **Settings > Access tokens** (or search "Access tokens" in the DT
+   search bar)
+2. Click **Generate new token**
+3. Fill in:
+
+| Field | Value |
+|-------|-------|
+| Token name | `dtctl-problems` |
+| Expiration date | (leave empty for no expiry, or set a rotation date) |
+
+4. Search for `problems` in the scopes table and check:
+   - `Read problems` (`problems.read`)
+   - `Write problems` (`problems.write`)
+   - `Read security problems` (`securityProblems.read`)
+   - `Write security problems` (`securityProblems.write`)
+5. Click **Generate token**
+6. **Copy the `dt0c01.*` token** (you only see it once)
+7. Save it as `DT_API_TOKEN` in `docs/dev-environment.sh`
+
+> **Why a separate token?** Platform tokens (`dt0s16.*`) do not expose
+> `environment-api:problems:*` scopes. The classic access token is the only way
+> to list/close problems via the API — for example, cleaning up stale "Process
+> unavailable" problems from decommissioned hosts.
+
+### Step 13: Enable process group availability alerting
 
 **This step is critical.** Without it, Dynatrace sees a process stop/start as
 an informational event but never generates a Davis problem — so the Workflow
@@ -289,7 +318,7 @@ Alternatively, navigate directly:
 
 ## Part 3 — Validate and Test
 
-### Step 13: Verify AAP objects in the UI
+### Step 14: Verify AAP objects in the UI
 
 Walk through each section of the AAP UI and confirm the objects exist and are
 healthy:
@@ -305,7 +334,7 @@ healthy:
 | **Decisions > Event Streams** | `DT-EDA-PUSH - Dynatrace Events` — exists, has an External URL |
 | **Decisions > Rulebook Activations** | `DT-EDA-PUSH - Service Remediation` — status is **Running** |
 
-### Step 14: Verify Dynatrace objects in the UI
+### Step 15: Verify Dynatrace objects in the UI
 
 | Where to check | What to verify |
 |----------------|---------------|
@@ -314,7 +343,7 @@ healthy:
 | **Workflows** | `DT-EDA-PUSH - Service Failure → AAP` is active |
 | **Settings > Anomaly detection > Process group availability** | Alerting rule exists for your target process group(s) |
 
-### Step 15: End-to-end test
+### Step 16: End-to-end test
 
 Stop the monitored service on a target host to trigger a real Davis problem:
 
@@ -353,12 +382,12 @@ sudo systemctl start httpd
 | Event Stream returns **401** | Token mismatch | The token in the Dynatrace EDA connection must exactly match the token in the AAP `DT-EDA-PUSH - Event Stream Token` credential |
 | Rulebook activation won't start | Decision Environment not available or EDA project sync failed | Check **Decisions > Decision Environments** — Default DE should be present. Check EDA project sync status |
 | Activation starts but no events arrive | Event Stream not wired to activation | Edit the activation and confirm `DT-EDA-PUSH - Dynatrace Events` is listed under Event Streams with source name `__SOURCE_1` |
-| Workflow not firing on problem | Process group alerting not enabled (Step 12) | Without the alerting rule, Davis only generates informational events. The Workflow trigger fires on *problems*, not informational events |
+| Workflow not firing on problem | Process group alerting not enabled (Step 13) | Without the alerting rule, Davis only generates informational events. The Workflow trigger fires on *problems*, not informational events |
 | Workflow fires but event not received in AAP | Network — Dynatrace can't reach AAP | Check Workflow execution logs for HTTP errors. Verify AAP is reachable from the internet on HTTPS/443 |
 | Workflow fires but wrong connection | Multiple EDA connections exist | Verify the Workflow's `send_to_aap` task references the correct connection (`DT-EDA-PUSH - AAP Event Stream`) |
 | Controller JT not found | Controller project hasn't synced | Go to **Controller > Projects > DT-EDA-PUSH** and trigger a sync. Wait for it to complete before checking templates |
 | Job template shows "Playbook not found" | Project SCM type is wrong | Edit the Controller project — Source Control Type must be `Git` with the correct URL. Re-sync after fixing |
-| Orphaned active problem in Dynatrace | Host/process was deleted; Dynatrace won't see recovery | Click into the problem detail page > three-dot menu (⋮) > **Close problem** |
+| Orphaned active problem in Dynatrace | Host/process was deleted; Dynatrace won't see recovery | Close via Problems API v2: `curl -X POST "${DT_API_HOST}/api/v2/problems/<id>/close" -H "Authorization: Api-Token ${DT_API_TOKEN}" -H "Content-Type: application/json" -d '{"message":"Host decommissioned"}'` (requires classic access token from Step 12) |
 
 ---
 

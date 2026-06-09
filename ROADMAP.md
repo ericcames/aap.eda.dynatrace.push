@@ -199,6 +199,9 @@ objects with a `DT-EDA-PUSH -` prefix.
 | 2026-06-05 | Controller project needs `scm_type: git` + `wait: true` | Without these the project creates as manual (no SCM URL), and the JT fails with "Playbook not found". EDA project must omit `scm_branch` (ansible.eda 2.5.0 doesn't support it) |
 | 2026-06-07 | **Process group availability alerting** required for httpd | Davis does not auto-generate problems when a process goes down — it only logs informational events. Explicit `builtin:availability.process-group-alerting` rule (mode: `ON_PGI_UNAVAILABILITY`) scoped to the httpd process group is required for the Workflow trigger to fire |
 | 2026-06-07 | Process group entity discovered via **DQL** (`dtctl query`) | `dtctl get` has no `entities` resource; `dtctl query 'fetch dt.entity.process_group'` returns entity names + IDs. httpd = `PROCESS_GROUP-685F2A71A785ADB9` |
+| 2026-06-09 | **Classic access token** (`dt0c01.*`) required for Problems API v2 | Platform tokens (`dt0s16.*`) do not expose `environment-api:problems:*` scopes. A separate classic token created in the environment UI (Settings > Access tokens) is needed to list/close problems. Stored as `DT_API_TOKEN` in `dev-environment.sh` |
+| 2026-06-09 | **Stale problems** from decommissioned hosts must be closed via API | When a host is deleted, Dynatrace keeps "Process unavailable" problems open indefinitely. `POST /api/v2/problems/{id}/close` with a decommission message resolves them. Should be part of any teardown/decommission workflow |
+| 2026-06-09 | **`analysisReady: false`** on the workflow trigger | Fires on problem open without waiting for Davis root cause analysis (~2-3 min instead of ~6 min). Root cause is queried separately via Problems API v2 after remediation completes, so it still lands in the ServiceNow ticket (AB#154) |
 
 ---
 
@@ -220,13 +223,11 @@ objects with a `DT-EDA-PUSH -` prefix.
 
 ## Risks / Open Questions
 
-- **Event payload shape** — the exact fields in the Dynatrace Workflow "Send
-  event to EDA" action payload need to be captured from a live event (Phase 3).
-  The rulebook condition will be tuned after.
-- **dtctl settings schema** — verify that `dtctl apply` can manage the Red Hat
-  Ansible Connector connection (schema
-  `app:dynatrace.redhat.ansible.eda.webhook.connection`). If not, document the
-  manual UI steps as a fallback.
+- ~~**Event payload shape**~~ — resolved in Phase 3. Live event shape captured
+  2026-06-07 in `dynatrace/davis-problem-event-shape.yaml`.
+- ~~**dtctl settings schema**~~ — verified 2026-06-05. Schema is
+  `app:dynatrace.redhat.ansible:eda-webhook.connection` (colons, not dots).
+  EDA connection created via UI; workflow via `dtctl create workflow`.
 - **Service restart safety** — which services are safe to auto-restart? Need an
   allowlist and throttle to prevent restart storms.
 - **dc1.azure OneAgent** — the RHEL hosts need OneAgent installed to detect

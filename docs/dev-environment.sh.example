@@ -33,6 +33,16 @@ export EDA_EVENT_STREAM_TOKEN="REPLACE_ME_EVENT_STREAM_TOKEN"
 # is needed if you want to comment on / close problems from AAP.
 export DT_API_HOST="https://<env-id>.live.dynatrace.com"
 
+# --- Dynatrace Access Token (classic) ---
+# A dt0c01.* token created in the Dynatrace environment UI:
+#   Settings > Access tokens > Generate new token
+# Token name: dtctl-problems
+# Required scopes: problems.read, problems.write,
+#   securityProblems.read, securityProblems.write
+# Used to close stale problems (e.g. from decommissioned hosts) via the
+# Environment API v2.  NOT the same as the OAuth platform token above.
+export DT_API_TOKEN="REPLACE_ME"
+
 # --- dtctl auth ---
 # dtctl uses BROWSER-BASED OAuth login (not client credentials in env vars).
 # Setup:

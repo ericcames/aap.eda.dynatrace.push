@@ -10,7 +10,7 @@
       "triggerConfiguration": {
         "type": "davis-problem",
         "value": {
-          "analysisReady": true,
+          "analysisReady": false,
           "categories": {
             "availability": true,
             "error": true,

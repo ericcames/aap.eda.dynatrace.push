@@ -43,12 +43,45 @@ UUID, connection objectId), so the setup order is:
    dtctl create workflow --file dynatrace/workflow-service-failure.json
    ```
 
-## Verified schemas (2026-06-05)
+> **Note:** The workflow trigger uses `analysisReady: false` — it fires
+> immediately when Davis opens a problem, without waiting for root cause
+> analysis. This cuts detection time from ~6 min to ~2-3 min. Root cause data
+> is queried separately via the Problems API v2 after remediation completes.
 
-| Schema | Purpose |
-|--------|---------|
-| `app:dynatrace.redhat.ansible:eda-webhook.connection` | EDA Event Stream connections |
-| `app:dynatrace.redhat.ansible:automation-controller.connection` | Controller connections (not used in push) |
+## Classic Access Token (Problems API)
+
+dtctl's OAuth platform token (`dt0s16.*`) does **not** expose
+`environment-api:problems:*` scopes. To list or close problems (e.g. stale
+"Process unavailable" from decommissioned hosts) you need a separate classic
+access token:
+
+1. In Dynatrace: **Settings > Access tokens > Generate new token**
+2. Name: `dtctl-problems`
+3. Scopes: `problems.read`, `problems.write`, `securityProblems.read`,
+   `securityProblems.write`
+4. Save the `dt0c01.*` value to `DT_API_TOKEN` in `docs/dev-environment.sh`
+
+```bash
+source docs/dev-environment.sh
+
+# List open problems
+curl -s "${DT_API_HOST}/api/v2/problems?problemSelector=status(open)" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" | python3 -m json.tool
+
+# Close a stale problem
+curl -s -X POST "${DT_API_HOST}/api/v2/problems/<problemId>/close" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Host decommissioned"}'
+```
+
+## Verified schemas
+
+| Schema | Purpose | Verified |
+|--------|---------|----------|
+| `app:dynatrace.redhat.ansible:eda-webhook.connection` | EDA Event Stream connections | 2026-06-05 |
+| `app:dynatrace.redhat.ansible:automation-controller.connection` | Controller connections (not used in push) | 2026-06-05 |
+| `builtin:availability.process-group-alerting` | Process group availability rules | 2026-06-07 |
 
 ## Testing
 
@@ -75,4 +108,20 @@ dtctl exec workflow <id>                  # manual trigger (needs real event con
 dtctl get wfe --workflow <id>             # list executions
 dtctl logs wfe <execution-id>             # execution logs
 dtctl get settings --schema <schema>      # list settings objects
+dtctl query 'fetch dt.entity.process_group'           # find process groups + IDs
+dtctl query 'fetch dt.entity.host | fields entity.name, id, state'  # list hosts
+```
+
+### Problem management (uses DT_API_TOKEN, not dtctl)
+
+```bash
+source docs/dev-environment.sh
+# List open problems
+curl -s "${DT_API_HOST}/api/v2/problems?problemSelector=status(open)" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" | python3 -m json.tool
+# Close a problem
+curl -s -X POST "${DT_API_HOST}/api/v2/problems/<problemId>/close" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Host decommissioned"}'
 ```

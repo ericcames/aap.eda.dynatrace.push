@@ -20,6 +20,8 @@ Before running, confirm:
 2. Collections are installed: `ansible-galaxy collection install -r collections/requirements.yml`
 3. AAP is reachable at `$AAP_HOSTNAME`
 4. dtctl is installed and authenticated (for the Dynatrace side)
+5. `DT_API_TOKEN` is set in `docs/dev-environment.sh` (classic `dt0c01.*` access
+   token for problem management — see Step 3b)
 
 ## Steps
 
@@ -48,6 +50,13 @@ If dtctl is set up:
 dtctl apply -f dynatrace/
 ```
 
+#### Workflow trigger: `analysisReady: false`
+
+The workflow fires immediately when Davis opens a problem — it does not wait for
+root cause analysis to complete. This cuts detection from ~6 min to ~2-3 min.
+Root cause data is queried separately via the Problems API v2 after remediation
+(see AB#154 in dc1.azure).
+
 #### Process group availability alerting
 
 Without this rule, Dynatrace sees httpd stop/start as informational events but
@@ -70,6 +79,37 @@ dtctl get settings --schema builtin:availability.process-group-alerting
 > group on the current dc1.azure environment. If the process group entity ID
 > differs in a new environment, find it with:
 > `dtctl query 'fetch dt.entity.process_group'`
+
+### Step 3b: Close stale problems (optional)
+
+When hosts are decommissioned or the environment is rebuilt, Dynatrace keeps
+"Process unavailable" problems open because the process group instance never
+comes back. Close them with the Environment API v2 using `DT_API_TOKEN` (a
+classic `dt0c01.*` access token — dtctl's OAuth platform token does not have the
+required `environment-api:problems:*` scopes).
+
+List open problems:
+
+```bash
+source docs/dev-environment.sh
+curl -s "${DT_API_HOST}/api/v2/problems?problemSelector=status(open)" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" | python3 -m json.tool
+```
+
+Close a stale problem by ID:
+
+```bash
+curl -s -X POST "${DT_API_HOST}/api/v2/problems/<problemId>/close" \
+  -H "Authorization: Api-Token ${DT_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Host decommissioned"}'
+```
+
+> **Token setup:** Create the classic access token in the Dynatrace environment
+> UI: **Settings > Access tokens > Generate new token**, name `dtctl-problems`,
+> scopes: `problems.read`, `problems.write`, `securityProblems.read`,
+> `securityProblems.write`. Save the `dt0c01.*` value to `DT_API_TOKEN` in
+> `docs/dev-environment.sh`.
 
 ### Step 4: Verify
 

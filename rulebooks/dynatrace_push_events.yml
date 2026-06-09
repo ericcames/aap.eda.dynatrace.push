@@ -6,9 +6,14 @@
 # endpoint. The ansible.eda.webhook source listens internally (0.0.0.0:5000);
 # the Event Stream handles external auth and proxying.
 #
+# Two rules:
+#   1. OPEN events  → launch the remediation workflow (triage + fix + close)
+#   2. CLOSED events → launch the confirm-resolution JT (post DT confirmation
+#      to the ServiceNow incident, closing the detect→remediate→confirm loop)
+#
 # Variables are injected by the rulebook activation
 # (aap_config/files/eda_rulebook_activations.yml):
-#   dt_match_pattern / notify_template / remediate_workflow
+#   remediate_workflow / confirm_resolution_template
 #   / my_organization ← extra_vars
 #
 # EVENT SHAPE: the Dynatrace "Send event to Event-Driven Ansible" Workflow
@@ -17,6 +22,8 @@
 #   event.meta      — request headers (Authorization stripped)
 #
 # The exact payload fields depend on the Workflow's Event data configuration.
+# event.payload.eventData['event.status'] is "ACTIVE" on problem open,
+# "CLOSED" on problem close.
 # ============================================================================
 - name: React to Dynatrace push events
   hosts: all
@@ -25,11 +32,30 @@
         host: 0.0.0.0
         port: 5000
   rules:
-    - name: Launch remediation workflow on a Dynatrace problem event
-      condition: event.payload is defined
+    - name: Launch remediation workflow on a Dynatrace OPEN problem event
+      condition: >-
+        event.payload is defined and
+        (
+          event.payload.eventData is not defined or
+          event.payload.eventData['event.status'] is not defined or
+          event.payload.eventData['event.status'] == "ACTIVE"
+        )
       action:
         run_workflow_template:
           name: "{{ remediate_workflow }}"
+          organization: "{{ my_organization }}"
+          job_args:
+            extra_vars:
+              dt_push_event: "{{ event.payload }}"
+
+    - name: Confirm resolution on a Dynatrace CLOSED problem event
+      condition: >-
+        event.payload is defined and
+        event.payload.eventData is defined and
+        event.payload.eventData['event.status'] == "CLOSED"
+      action:
+        run_job_template:
+          name: "{{ confirm_resolution_template }}"
           organization: "{{ my_organization }}"
           job_args:
             extra_vars:

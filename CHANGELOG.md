@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **AB#154 — Closed-loop confirmation** — Dynatrace workflow trigger now fires
+  on problem close (`onProblemClose: true`). Rulebook split into two rules:
+  OPEN events launch the remediation workflow (existing behavior), CLOSED events
+  launch the `DC1.Azure - Confirm Resolution (DT)` JT (dc1.azure) to post a
+  Dynatrace confirmation work note to the ServiceNow incident — closing the
+  detect→remediate→confirm loop.
+- Rulebook activation extra_vars gain `confirm_resolution_template` variable.
+
 ### Documentation
 
 - Added `docs/INSTALL-UI.md` — full manual install guide using only the AAP and

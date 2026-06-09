@@ -19,7 +19,7 @@
           },
           "entityTags": {},
           "entityTagsMatch": "all",
-          "onProblemClose": false,
+          "onProblemClose": true,
           "severityThreshold": 3
         }
       },

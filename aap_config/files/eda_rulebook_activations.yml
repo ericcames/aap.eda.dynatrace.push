@@ -14,6 +14,7 @@ eda_rulebook_activations:
       my_organization: "{{ my_organization }}"
       notify_template: "{{ notify_template }}"
       remediate_workflow: "{{ remediate_workflow }}"
+      confirm_resolution_template: "{{ confirm_resolution_template }}"
     event_streams:
       - event_stream: "{{ eda_event_stream_name }}"
         source_name: __SOURCE_1

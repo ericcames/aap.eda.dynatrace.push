@@ -18,11 +18,11 @@
 #
 # Workflow ID: b95f0005-dbc2-424d-8ed5-61ebe17498c4 (current dev env)
 #
-# TRIGGER CONFIG (verified 2026-06-05):
-#   - Davis problem trigger, analysisReady: true
+# TRIGGER CONFIG (updated AB#154):
+#   - Davis problem trigger, analysisReady: false (fire immediately)
 #   - Categories: availability, error, resource (not info)
 #   - Severity threshold: 3 (captures all severities up to 3)
-#   - onProblemClose: false (fires on open only)
+#   - onProblemClose: true (fires on OPEN + CLOSED — closed-loop confirmation)
 #   - uniqueExpression keys on event.id + status + reopen timestamp
 #
 # TASK: send_to_aap

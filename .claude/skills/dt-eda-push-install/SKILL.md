@@ -50,12 +50,18 @@ If dtctl is set up:
 dtctl apply -f dynatrace/
 ```
 
-#### Workflow trigger: `analysisReady: false`
+#### Workflow trigger: `analysisReady: false`, `onProblemClose: true`
 
 The workflow fires immediately when Davis opens a problem — it does not wait for
 root cause analysis to complete. This cuts detection from ~6 min to ~2-3 min.
 Root cause data is queried separately via the Problems API v2 after remediation
 (see AB#154 in dc1.azure).
+
+The workflow also fires on problem close (`onProblemClose: true`). When
+Dynatrace confirms the problem has cleared, a CLOSED event reaches AAP EDA and
+the rulebook launches the `DC1.Azure - Confirm Resolution (DT)` JT, which
+posts a confirmation work note to the ServiceNow incident — closing the
+detect→remediate→confirm loop.
 
 #### Process group availability alerting
 

@@ -65,26 +65,49 @@ detect→remediate→confirm loop.
 
 #### Process group availability alerting
 
-Without this rule, Dynatrace sees httpd stop/start as informational events but
-never generates a Davis problem — so the Workflow trigger never fires.
+Without this rule, Dynatrace sees the web process stop/start as informational
+events but never generates a Davis problem — so the Workflow trigger never
+fires.
+
+**You need one rule per process group you want to self-heal — one per OS.** The
+rule is scoped to a specific `PROCESS_GROUP` entity, so a Linux-only setup
+covers httpd but **silently misses Windows/IIS** (a real trap: the Windows
+self-heal looks "installed" but never fires because no problem is ever raised).
+
+First find the process-group entity IDs for the web tier (the names differ by
+OS — `Apache Web Server httpd` on Linux, `IIS app pool DefaultAppPool` on
+Windows):
 
 ```bash
+dtctl query 'fetch dt.entity.process_group | filter contains(entity.name, "httpd") or contains(entity.name, "IIS app pool")'
+```
+
+Then create the rule for **each** one (the value file is OS-agnostic):
+
+```bash
+# Linux — Apache httpd
 dtctl create settings \
   --schema builtin:availability.process-group-alerting \
-  --scope  PROCESS_GROUP-685F2A71A785ADB9 \
+  --scope  PROCESS_GROUP-<httpd-id> \
+  --file   dynatrace/process-group-availability.yaml
+
+# Windows — IIS app pool DefaultAppPool (don't skip this one)
+dtctl create settings \
+  --schema builtin:availability.process-group-alerting \
+  --scope  PROCESS_GROUP-<iis-app-pool-id> \
   --file   dynatrace/process-group-availability.yaml
 ```
 
-Verify the rule is in place:
+Verify both rules are in place (expect one object per web PG):
 
 ```bash
 dtctl get settings --schema builtin:availability.process-group-alerting
 ```
 
-> **Note:** The scope (`PROCESS_GROUP-685F2A71A785ADB9`) is the httpd process
-> group on the current dc1.azure environment. If the process group entity ID
-> differs in a new environment, find it with:
-> `dtctl query 'fetch dt.entity.process_group'`
+> **Note:** Process-group entity IDs are environment-specific — always resolve
+> them by name (above) rather than hardcoding. On a multi-OS environment, confirm
+> you have a rule for **both** the httpd and IIS-app-pool process groups; a
+> missing IIS rule is the most common reason "Windows self-heal doesn't work."
 
 ### Step 3b: Close stale problems (optional)
 
@@ -129,7 +152,7 @@ Check the AAP UI:
 - **Automation Controller > Templates** — `DT-EDA-PUSH - Notify` exists
 
 Check Dynatrace:
-- **Process group availability** — `dtctl get settings --schema builtin:availability.process-group-alerting` returns the httpd rule with `enabled: true`
+- **Process group availability** — `dtctl get settings --schema builtin:availability.process-group-alerting` returns a rule with `enabled: true` for **each** web process group (httpd on Linux, IIS app pool on Windows)
 - **Workflow** — `dtctl get workflows` shows `DT-EDA-PUSH - Service Failure → AAP` as active
 
 ## Event shape reference
@@ -143,3 +166,12 @@ The live Davis problem event shape is documented in
 - Problem ID is `display_id` (not `problemId`)
 - Hostname is in `host.name[0]` (list, FQDN with `lnx`/`win` for OS detection)
 - `affected_entity_names[0]` is the process group name, not the hostname
+
+> **Windows host-name gotcha:** Windows caps the OS computer name at the 15-char
+> NetBIOS limit, so a long VM name (e.g. `myapp-win-small-2cpu-4gb-<suffix>`)
+> truncates to `myapp-win-small` and **every Windows build collides on one
+> Dynatrace host identity** — a problem/incident then attributes to a *stale
+> prior instance* even though remediation fixes the live host. Install the
+> Windows OneAgent with `--set-host-name=<unique FQDN>` (mirroring how Linux
+> already reports its full hostname) so `host.name` is unique per host. Linux is
+> unaffected.
